@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subqueries Practice Sheet</title>
+<meta name="description" content="WebiGeeks SQL evening session: scalar, multi-row and multi-column subqueries with examples, tasks and hidden answers (PostgreSQL).">
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface-2: #f0eee8;
+    --text: #1d1d1f;
+    --muted: #5f5f66;
+    --border: #e2dfd6;
+    --accent: #c2410c;
+    --accent-soft: #fde8dc;
+    --scalar: #1d6fb8;
+    --multi: #15803d;
+    --multicol: #7c3aed;
+    --code-bg: #1e1f24;
+    --code-text: #e6e6e6;
+    --kw: #ff9d6b;
+    --fn: #7cc4ff;
+    --str: #a5e08a;
+    --num: #f3c969;
+    --cmt: #8a8f98;
+    --tip-bg: #fff7e0;
+    --tip-border: #e8c75c;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416; --surface: #1c1c20; --surface-2: #25252a; --text: #ececf0;
+      --muted: #a0a0aa; --border: #33333a; --accent: #ff8a4c; --accent-soft: #3a2418;
+      --scalar: #6cb4f5; --multi: #5fd18a; --multicol: #b394ff;
+      --code-bg: #0f0f12; --tip-bg: #2a2412; --tip-border: #7a6420;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416; --surface: #1c1c20; --surface-2: #25252a; --text: #ececf0;
+    --muted: #a0a0aa; --border: #33333a; --accent: #ff8a4c; --accent-soft: #3a2418;
+    --scalar: #6cb4f5; --multi: #5fd18a; --multicol: #b394ff;
+    --code-bg: #0f0f12; --tip-bg: #2a2412; --tip-border: #7a6420;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+  header.hero { padding: 48px 0 24px; }
+  .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 13px; }
+  h1 { font-size: clamp(28px, 6vw, 42px); line-height: 1.15; margin: 8px 0 12px; }
+  h2 { font-size: clamp(22px, 4.5vw, 30px); margin: 0 0 8px; line-height: 1.25; }
+  h3 { font-size: 19px; margin: 28px 0 8px; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 65ch; }
+  nav.top {
+    position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+  }
+  nav.top .wrap { display: flex; gap: 6px; overflow-x: auto; padding-top: 10px; padding-bottom: 10px; scrollbar-width: none; }
+  nav.top a {
+    flex: none; text-decoration: none; color: var(--text); font-size: 14px; font-weight: 600;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  }
+  nav.top a:hover { border-color: var(--accent); color: var(--accent); }
+  #themeBtn { margin-left: auto; cursor: pointer; font: inherit; font-size: 14px; font-weight: 600; color: var(--text);
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); flex: none; }
+  section { padding: 40px 0 8px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin: 16px 0; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; color: #fff; margin-bottom: 8px; }
+  .tag.scalar { background: var(--scalar); } .tag.multi { background: var(--multi); } .tag.multicol { background: var(--multicol); }
+  .sec-scalar h2 { color: var(--scalar); } .sec-multi h2 { color: var(--multi); } .sec-multicol h2 { color: var(--multicol); }
+  .tip { background: var(--tip-bg); border-left: 4px solid var(--tip-border); padding: 12px 16px; border-radius: 8px; margin: 12px 0; }
+  .tip strong { display: block; margin-bottom: 2px; }
+  ul.clean { padding-left: 20px; margin: 8px 0 12px; }
+  ul.clean li { margin-bottom: 4px; }
+  code.inline { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: .92em; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+  .code { position: relative; margin: 12px 0; }
+  .code pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text); border-radius: 10px;
+    padding: 16px; padding-top: 40px; overflow-x: auto; font: 14px/1.6 ui-monospace, "Cascadia Code", Consolas, monospace;
+    -webkit-overflow-scrolling: touch;
+  }
+  .code .label { position: absolute; top: 10px; left: 16px; font-size: 12px; color: var(--cmt); font-family: ui-monospace, Consolas, monospace; }
+  .copy {
+    position: absolute; top: 8px; right: 8px; cursor: pointer; border: 1px solid #44464f; background: #2a2c33; color: #e6e6e6;
+    font: 600 12px system-ui, sans-serif; padding: 5px 10px; border-radius: 6px;
+  }
+  .copy:hover { background: #393c45; }
+  .copy.done { background: #15803d; border-color: #15803d; }
+  .kw { color: var(--kw); font-weight: 600; } .fn { color: var(--fn); } .str { color: var(--str); } .num { color: var(--num); } .cmt { color: var(--cmt); font-style: italic; }
+
+  .result { margin: 8px 0 4px; }
+  .result-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: var(--surface-2); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .task { border-left: 4px solid var(--border); }
+  .sec-scalar .task { border-left-color: var(--scalar); }
+  .sec-multi .task { border-left-color: var(--multi); }
+  .sec-multicol .task { border-left-color: var(--multicol); }
+  .task-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .task-no { font-weight: 800; color: var(--accent); }
+  .level { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+  .hint { color: var(--muted); font-size: 15px; }
+  details { margin-top: 12px; border: 1px dashed var(--border); border-radius: 8px; padding: 0 12px; }
+  details[open] { padding-bottom: 12px; }
+  summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 10px 0; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸ "; } details[open] summary::before { content: "▾ "; }
+
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .mini { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .mini h4 { margin: 4px 0 6px; font-size: 16px; }
+  .mini p { font-size: 15px; color: var(--muted); margin: 0; }
+  footer { color: var(--muted); font-size: 14px; padding: 40px 0 60px; border-top: 1px solid var(--border); margin-top: 40px; }
+  @media (max-width: 560px) {
+    body { font-size: 15px; }
+    .card { padding: 16px; }
+    .code pre { font-size: 13px; padding: 12px; padding-top: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a href="#intro">Basics</a>
+    <a href="#dataset">Dataset</a>
+    <a href="#scalar">Scalar</a>
+    <a href="#multirow">Multi-row</a>
+    <a href="#multicol">Multi-column</a>
+    <a href="#cheatsheet">Cheat sheet</a>
+    <button id="themeBtn" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<header class="hero" id="intro">
+  <div class="eyebrow">WebiGeeks · SQL Evening Session · PostgreSQL</div>
+  <h1>Subqueries: a query inside a query</h1>
+  <p class="lead">A subquery is a <code class="inline">SELECT</code> written inside round brackets <code class="inline">( )</code> within another query. The inner query runs first. Its answer is then used by the outer query.</p>
+</header>
+
+<div class="card">
+  <h3 style="margin-top:0">Simple real-life example</h3>
+  <p>Your class teacher asks: <em>"Who scored more than the class average?"</em> You can't answer it in one go. First you calculate the average (say 72 marks). Only then can you check each student's marks against 72.</p>
+  <p>SQL works the same way. The <strong>inner query</strong> finds the average. The <strong>outer query</strong> uses it:</p>
+  <div class="code"><span class="label">concept</span><pre><code>SELECT name FROM students
+WHERE marks &gt; (SELECT AVG(marks) FROM students);   -- inner query runs first</code></pre></div>
+</div>
+
+<div class="grid3">
+  <div class="mini"><span class="tag scalar">Scalar</span><h4>Returns 1 value</h4><p>One row, one column. Like a single number: the average fee, the highest age. Use it with <code class="inline">=  &gt;  &lt;</code>.</p></div>
+  <div class="mini"><span class="tag multi">Multi-row</span><h4>Returns a list</h4><p>Many rows, one column. Like a list of IDs. Use it with <code class="inline">IN, NOT IN, ANY, ALL</code>.</p></div>
+  <div class="mini"><span class="tag multicol">Multi-row / column</span><h4>Returns a mini table</h4><p>Many rows and many columns. Compare pairs like <code class="inline">(city, age)</code>, or use it in <code class="inline">FROM</code> as a table.</p></div>
+</div>
+
+<div class="tip"><strong>Golden rules</strong>
+  <ul class="clean">
+    <li>Always put a subquery inside brackets <code class="inline">( )</code>.</li>
+    <li>If you use <code class="inline">=</code> or <code class="inline">&gt;</code>, the subquery must give only <b>one</b> value. Otherwise PostgreSQL shows the error: <em>"more than one row returned by a subquery used as an expression"</em>.</li>
+    <li>A subquery used in <code class="inline">FROM</code> should get a short name (alias), like <code class="inline">AS t</code>.</li>
+    <li>Run the inner query alone first. If it gives the right answer, the outer query will too.</li>
+  </ul>
+</div>
+
+<!-- ============================ DATASET ============================ -->
+<section id="dataset">
+  <h2>Practice dataset</h2>
+  <p>Data from a small coaching institute with 3 tables: <b>courses</b>, <b>students</b> (who joined which course) and <b>payments</b> (fee instalments). Copy the full script and run it once in pgAdmin 4 &gt; Query Tool &gt; F5.</p>
+
+  <div class="code"><span class="label">dataset.sql: run this first</span><button class="copy" type="button">Copy</button><pre><code>-- WebiGeeks Institute : practice dataset for subqueries (PostgreSQL)
+-- Run this whole block once in pgAdmin 4 &gt; Query Tool &gt; F5
+
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS students;
+DROP TABLE IF EXISTS courses;
+
+CREATE TABLE courses (
+    course_id        INT PRIMARY KEY,
+    course_name      VARCHAR(50),
+    fee              INT,          -- full course fee in rupees
+    duration_months  INT
+);
+
+CREATE TABLE students (
+    student_id  INT PRIMARY KEY,
+    name        VARCHAR(50),
+    city        VARCHAR(30),
+    age         INT,
+    course_id   INT REFERENCES courses(course_id),
+    join_date   DATE
+);
+
+CREATE TABLE payments (
+    payment_id  INT PRIMARY KEY,
+    student_id  INT REFERENCES students(student_id),
+    amount      INT,               -- amount paid in this instalment (rupees)
+    pay_date    DATE,
+    mode        VARCHAR(20)        -- UPI / Card / Cash / Bank Transfer
+);
+
+INSERT INTO courses VALUES
+(1, 'MERN Stack',      23000, 6),
+(2, 'Data Analytics',  18000, 4),
+(3, 'Python Basics',   12000, 3),
+(4, 'Java Full Stack', 25000, 6),
+(5, 'UI/UX Design',    15000, 3);
+
+INSERT INTO students VALUES
+(101, 'Aarav Sharma',  'Delhi',     22, 1, '2025-01-10'),
+(102, 'Priya Verma',   'Gurugram',  24, 2, '2025-01-15'),
+(103, 'Rohit Kumar',   'Noida',     21, 1, '2025-02-01'),
+(104, 'Sneha Gupta',   'Delhi',     26, 3, '2025-02-12'),
+(105, 'Karan Singh',   'Faridabad', 23, 2, '2025-03-05'),
+(106, 'Neha Jain',     'Gurugram',  25, 4, '2025-03-18'),
+(107, 'Vikas Yadav',   'Rewari',    28, 1, '2025-04-02'),
+(108, 'Pooja Arora',   'Noida',     22, 2, '2025-04-20'),
+(109, 'Amit Malik',    'Delhi',     30, 4, '2025-05-08'),
+(110, 'Riya Kapoor',   'Faridabad', 20, 3, '2025-05-25'),
+(111, 'Sahil Chauhan', 'Gurugram',  27, 1, '2025-06-10'),
+(112, 'Ananya Saini',  'Delhi',     24, 1, '2025-06-28');
+
+INSERT INTO payments VALUES
+(1,  101, 10000, '2025-01-10', 'UPI'),
+(2,  101, 13000, '2025-02-10', 'UPI'),
+(3,  102, 18000, '2025-01-15', 'Card'),
+(4,  103,  8000, '2025-02-01', 'Cash'),
+(5,  104, 12000, '2025-02-12', 'UPI'),
+(6,  105,  9000, '2025-03-05', 'Bank Transfer'),
+(7,  105,  9000, '2025-04-05', 'Bank Transfer'),
+(8,  106, 15000, '2025-03-18', 'Card'),
+(9,  107, 23000, '2025-04-02', 'UPI'),
+(10, 108,  6000, '2025-04-20', 'Cash'),
+(11, 109, 25000, '2025-05-08', 'Card'),
+(12, 110,  5000, '2025-05-25', 'UPI'),
+(13, 111, 12000, '2025-06-10', 'UPI'),
+(14, 111, 11000, '2025-07-10', 'UPI');</code></pre></div>
+
+  <div class="tip"><strong>Things to notice in this data (these will come up in the tasks)</strong>
+    <ul class="clean">
+      <li><b>UI/UX Design</b> (course 5) has no students yet.</li>
+      <li><b>Ananya Saini</b> (112) has not paid any fee yet.</li>
+      <li>Some students paid in 2 instalments (101, 105, 111).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================ SCALAR ============================ -->
+<section id="scalar" class="sec-scalar">
+  <span class="tag scalar">Part 1</span>
+  <h2>Scalar subquery: returns exactly one value</h2>
+  <p>A scalar subquery gives back <b>one single value</b> (1 row × 1 column), for example the average age or the highest fee. You can use that value anywhere you would type a normal number: in <code class="inline">WHERE</code>, in <code class="inline">SELECT</code>, or in a calculation.</p>
+  <div class="tip"><strong>How to identify</strong>The inner query usually has <code class="inline">AVG / MAX / MIN / SUM / COUNT</code> without <code class="inline">GROUP BY</code>, or it filters on a unique value such as one student's name.</div>
+
+  <h3>Example 1: students older than the average age</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>-- Outer query: show name and age of students
+SELECT name, age
+FROM students
+-- keep only those whose age is greater than ONE number...
+WHERE age &gt; (
+    -- ...and this inner query calculates that number: the average age (24.33)
+    SELECT AVG(age) FROM students
+);</code></pre></div>
+  <div class="result"><div class="result-title">Result: 5 rows (average age = 24.33)</div><div class="table-scroll"><table>
+    <tr><th>name</th><th>age</th></tr>
+    <tr><td>Sneha Gupta</td><td class="n">26</td></tr><tr><td>Neha Jain</td><td class="n">25</td></tr><tr><td>Vikas Yadav</td><td class="n">28</td></tr><tr><td>Amit Malik</td><td class="n">30</td></tr><tr><td>Sahil Chauhan</td><td class="n">27</td></tr>
+  </table></div></div>
+
+  <h3>Example 2: scalar subquery inside SELECT (compare each payment with the average)</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT payment_id,
+       amount,
+       -- same single value (average payment) is shown on every row
+       (SELECT ROUND(AVG(amount)) FROM payments) AS avg_amount,
+       -- amount minus average: positive = paid more than average, negative = less
+       amount - (SELECT ROUND(AVG(amount)) FROM payments) AS diff
+FROM payments;</code></pre></div>
+  <div class="result"><div class="result-title">Result: 14 rows (first 4 shown)</div><div class="table-scroll"><table>
+    <tr><th>payment_id</th><th>amount</th><th>avg_amount</th><th>diff</th></tr>
+    <tr><td class="n">1</td><td class="n">10000</td><td class="n">12571</td><td class="n">-2571</td></tr>
+    <tr><td class="n">2</td><td class="n">13000</td><td class="n">12571</td><td class="n">429</td></tr>
+    <tr><td class="n">3</td><td class="n">18000</td><td class="n">12571</td><td class="n">5429</td></tr>
+    <tr><td class="n">4</td><td class="n">8000</td><td class="n">12571</td><td class="n">-4571</td></tr>
+  </table></div></div>
+
+  <h3>Example 3: the most expensive course</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT course_name, fee
+FROM courses
+-- "=" works here because the inner query returns only ONE value
+WHERE fee = (
+    SELECT MAX(fee) FROM courses   -- highest fee = 25000
+);
+-- Why not ORDER BY fee DESC LIMIT 1?  If two courses had the same top fee,
+-- LIMIT 1 would show only one of them. The subquery shows both.</code></pre></div>
+  <div class="result"><div class="result-title">Result</div><div class="table-scroll"><table>
+    <tr><th>course_name</th><th>fee</th></tr><tr><td>Java Full Stack</td><td class="n">25000</td></tr>
+  </table></div></div>
+
+  <h3>Tasks: try these yourself</h3>
+
+  <div class="card task"><div class="task-head"><span class="task-no">S1</span><span class="level">Basic</span></div>
+    <p>Find the student(s) who joined <b>first</b> in the institute (earliest <code class="inline">join_date</code>). Show name and join_date.</p>
+    <p class="hint">Hint: <code class="inline">MIN(join_date)</code> inside the brackets.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name, join_date
+FROM students
+-- inner query gives the earliest date: 2025-01-10
+WHERE join_date = (SELECT MIN(join_date) FROM students);</code></pre></div>
+      <p><b>Expected:</b> Aarav Sharma, 2025-01-10</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">S2</span><span class="level">Basic</span></div>
+    <p>Show all payments where the amount is <b>more than the average payment</b>. Show payment_id, student_id and amount.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT payment_id, student_id, amount
+FROM payments
+-- average of all 14 payments is about 12571
+WHERE amount &gt; (SELECT AVG(amount) FROM payments);</code></pre></div>
+      <p><b>Expected:</b> 5 rows: payment_id 2, 3, 8, 9, 11 (amounts 13000, 18000, 15000, 23000, 25000)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">S3</span><span class="level">Basic</span></div>
+    <p>Find the students who live in the <b>same city as Neha Jain</b>. Don't include Neha herself.</p>
+    <p class="hint">Hint: you don't know Neha's city, so let the subquery find it.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name, city
+FROM students
+-- inner query returns ONE city: Neha Jain's city (Gurugram)
+WHERE city = (SELECT city FROM students WHERE name = 'Neha Jain')
+  AND name &lt;&gt; 'Neha Jain';   -- remove Neha from her own list</code></pre></div>
+      <p><b>Expected:</b> Priya Verma and Sahil Chauhan (both Gurugram)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">S4</span><span class="level">Basic</span></div>
+    <p>List all courses that are <b>cheaper than the MERN Stack</b> course.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT course_name, fee
+FROM courses
+-- inner query returns MERN Stack's fee: 23000
+WHERE fee &lt; (SELECT fee FROM courses WHERE course_name = 'MERN Stack');</code></pre></div>
+      <p><b>Expected:</b> Data Analytics (18000), Python Basics (12000), UI/UX Design (15000)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">S5</span><span class="level">Intermediate</span></div>
+    <p>For every course, show its fee, the <b>top fee</b> of the institute in a column, and the <b>gap</b> (how much cheaper it is than the top course).</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT course_name,
+       fee,
+       (SELECT MAX(fee) FROM courses)       AS top_fee,  -- 25000 on every row
+       (SELECT MAX(fee) FROM courses) - fee AS gap       -- difference from the top
+FROM courses;</code></pre></div>
+      <p><b>Expected:</b> MERN 2000, Data Analytics 7000, Python 13000, Java 0, UI/UX 10000</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">S6</span><span class="level">Intermediate</span></div>
+    <p>Show each payment and what <b>percentage of total collection</b> it is (round to 2 decimals).</p>
+    <p class="hint">Hint: percentage = amount × 100 ÷ total. Use <code class="inline">100.0</code> (not 100) so the result keeps its decimal part.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT payment_id,
+       amount,
+       -- total collection (176000) comes from the scalar subquery
+       ROUND(amount * 100.0 / (SELECT SUM(amount) FROM payments), 2) AS pct
+FROM payments;</code></pre></div>
+      <p><b>Expected:</b> 14 rows, e.g. payment 11 → 14.20, payment 9 → 13.07, payment 12 → 2.84</p>
+    </details>
+  </div>
+</section>
+
+<!-- ============================ MULTI-ROW ============================ -->
+<section id="multirow" class="sec-multi">
+  <span class="tag multi">Part 2</span>
+  <h2>Multi-row subquery: returns a list</h2>
+  <p>Here the inner query returns <b>many rows but only one column</b>, like a list of IDs. A list can't be compared with <code class="inline">=</code>, so we use special operators:</p>
+  <div class="table-scroll"><table>
+    <tr><th>Operator</th><th>Meaning in simple words</th></tr>
+    <tr><td><code class="inline">IN (list)</code></td><td>value is present in the list</td></tr>
+    <tr><td><code class="inline">NOT IN (list)</code></td><td>value is not present in the list</td></tr>
+    <tr><td><code class="inline">&gt; ANY (list)</code></td><td>bigger than <i>at least one</i> item (bigger than the smallest)</td></tr>
+    <tr><td><code class="inline">&gt; ALL (list)</code></td><td>bigger than <i>every</i> item (bigger than the biggest)</td></tr>
+    <tr><td><code class="inline">&lt; ALL (list)</code></td><td>smaller than every item (smaller than the smallest)</td></tr>
+  </table></div>
+
+  <h3>Example 1: IN: students in costly courses (fee above ₹20,000)</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT name, course_id
+FROM students
+-- IN checks: is this student's course_id present in the list?
+WHERE course_id IN (
+    -- inner query returns a LIST of course ids: 1 (MERN) and 4 (Java)
+    SELECT course_id FROM courses WHERE fee &gt; 20000
+);</code></pre></div>
+  <div class="result"><div class="result-title">Result: 7 rows</div><div class="table-scroll"><table>
+    <tr><th>name</th><th>course_id</th></tr>
+    <tr><td>Aarav Sharma</td><td class="n">1</td></tr><tr><td>Rohit Kumar</td><td class="n">1</td></tr><tr><td>Neha Jain</td><td class="n">4</td></tr><tr><td>Vikas Yadav</td><td class="n">1</td></tr><tr><td>Amit Malik</td><td class="n">4</td></tr><tr><td>Sahil Chauhan</td><td class="n">1</td></tr><tr><td>Ananya Saini</td><td class="n">1</td></tr>
+  </table></div></div>
+
+  <h3>Example 2: NOT IN: students who have not paid anything</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT student_id, name
+FROM students
+-- keep students whose id is NOT present in the payments list
+WHERE student_id NOT IN (
+    SELECT student_id FROM payments   -- list of everyone who has paid
+);</code></pre></div>
+  <div class="result"><div class="result-title">Result</div><div class="table-scroll"><table>
+    <tr><th>student_id</th><th>name</th></tr><tr><td class="n">112</td><td>Ananya Saini</td></tr>
+  </table></div></div>
+  <div class="tip"><strong>⚠ NOT IN and NULL: a common trap</strong>If the inner list contains even one <code class="inline">NULL</code>, <code class="inline">NOT IN</code> returns <b>zero rows</b>. SQL can't be sure a value is "not equal to unknown". To be safe, add <code class="inline">WHERE student_id IS NOT NULL</code> inside the subquery.</div>
+
+  <h3>Example 3: ALL: payments bigger than every cash payment</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT payment_id, amount, mode
+FROM payments
+-- &gt; ALL means bigger than EVERY value in the list,
+-- i.e. bigger than the biggest cash payment
+WHERE amount &gt; ALL (
+    SELECT amount FROM payments WHERE mode = 'Cash'   -- list: 8000, 6000
+);
+-- Same result as: WHERE amount &gt; (SELECT MAX(amount) FROM payments WHERE mode = 'Cash')</code></pre></div>
+  <div class="result"><div class="result-title">Result: 11 rows (every payment above ₹8,000)</div><div class="table-scroll"><table>
+    <tr><th>payment_id</th><th>amount</th><th>mode</th></tr>
+    <tr><td class="n">1</td><td class="n">10000</td><td>UPI</td></tr><tr><td class="n">2</td><td class="n">13000</td><td>UPI</td></tr><tr><td class="n">3</td><td class="n">18000</td><td>Card</td></tr><tr><td colspan="3">… 8 more rows</td></tr>
+  </table></div></div>
+
+  <h3>Tasks: try these yourself</h3>
+
+  <div class="card task"><div class="task-head"><span class="task-no">M1</span><span class="level">Basic</span></div>
+    <p>Show the names of students who made at least one payment by <b>Card</b>.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name
+FROM students
+-- inner query: list of student ids who paid by card (102, 106, 109)
+WHERE student_id IN (SELECT student_id FROM payments WHERE mode = 'Card');</code></pre></div>
+      <p><b>Expected:</b> Priya Verma, Neha Jain, Amit Malik</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">M2</span><span class="level">Basic</span></div>
+    <p>Find the course(s) that <b>no student has joined</b> yet.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT course_name
+FROM courses
+-- inner query: list of course ids that at least one student has joined
+WHERE course_id NOT IN (SELECT course_id FROM students);</code></pre></div>
+      <p><b>Expected:</b> UI/UX Design</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">M3</span><span class="level">Basic</span></div>
+    <p>Find all students who are in <b>any course that a Noida student has joined</b>.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name, city, course_id
+FROM students
+-- inner query: courses taken by Noida students -&gt; 1 (Rohit) and 2 (Pooja)
+WHERE course_id IN (SELECT course_id FROM students WHERE city = 'Noida');</code></pre></div>
+      <p><b>Expected:</b> 8 rows: every student of course 1 (MERN) and course 2 (Data Analytics)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">M4</span><span class="level">Intermediate</span></div>
+    <p>Find students who are <b>younger than every student from Delhi</b>.</p>
+    <p class="hint">Hint: "younger than every" → <code class="inline">&lt; ALL</code></p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name, age, city
+FROM students
+-- Delhi ages list: 22, 26, 30, 24 -&gt; must be smaller than ALL of them (below 22)
+WHERE age &lt; ALL (SELECT age FROM students WHERE city = 'Delhi');</code></pre></div>
+      <p><b>Expected:</b> Rohit Kumar (21, Noida), Riya Kapoor (20, Faridabad)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">M5</span><span class="level">Intermediate</span></div>
+    <p>Find payments that are bigger than <b>at least one</b> Card payment.</p>
+    <p class="hint">Hint: "at least one" → <code class="inline">&gt; ANY</code></p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT payment_id, amount, mode
+FROM payments
+-- card list: 18000, 15000, 25000
+-- &gt; ANY = bigger than the smallest one (15000)
+WHERE amount &gt; ANY (SELECT amount FROM payments WHERE mode = 'Card');</code></pre></div>
+      <p><b>Expected:</b> payment 3 (18000 Card), 9 (23000 UPI), 11 (25000 Card)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">M6</span><span class="level">Intermediate</span></div>
+    <p>Show the names of courses where <b>some student paid using UPI</b>. (Course is in <i>courses</i>, payment mode is in <i>payments</i>, and <i>students</i> links them.)</p>
+    <p class="hint">Hint: a subquery inside a subquery (nested).</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT course_name
+FROM courses
+WHERE course_id IN (
+    -- step 2: courses of those students
+    SELECT course_id FROM students
+    WHERE student_id IN (
+        -- step 1 (runs first): students who paid by UPI
+        SELECT student_id FROM payments WHERE mode = 'UPI'
+    )
+);</code></pre></div>
+      <p><b>Expected:</b> MERN Stack, Python Basics</p>
+    </details>
+  </div>
+</section>
+
+<!-- ============================ MULTI-COLUMN ============================ -->
+<section id="multicol" class="sec-multicol">
+  <span class="tag multicol">Part 3</span>
+  <h2>Multi-row, multi-column subquery: returns a mini table</h2>
+  <p>Now the inner query returns <b>many rows and many columns</b>. There are two common ways to use it:</p>
+  <ul class="clean">
+    <li><b>Pair comparison:</b> <code class="inline">WHERE (col1, col2) IN (SELECT a, b ...)</code>. Both values must match together, like matching both name and roll number.</li>
+    <li><b>Derived table:</b> <code class="inline">FROM (SELECT ...) AS t</code>. The subquery acts as a temporary table that you can filter or join.</li>
+  </ul>
+
+  <h3>Example 1: youngest student of each course (pair comparison)</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT name, course_id, age
+FROM students
+-- match BOTH values together: (course_id, age) must be one pair from the list
+WHERE (course_id, age) IN (
+    -- inner query returns 2 columns: each course and its minimum age
+    -- (1,21) (2,22) (3,20) (4,25)
+    SELECT course_id, MIN(age)
+    FROM students
+    GROUP BY course_id
+);</code></pre></div>
+  <div class="result"><div class="result-title">Result</div><div class="table-scroll"><table>
+    <tr><th>name</th><th>course_id</th><th>age</th></tr>
+    <tr><td>Rohit Kumar</td><td class="n">1</td><td class="n">21</td></tr><tr><td>Neha Jain</td><td class="n">4</td><td class="n">25</td></tr><tr><td>Pooja Arora</td><td class="n">2</td><td class="n">22</td></tr><tr><td>Riya Kapoor</td><td class="n">3</td><td class="n">20</td></tr>
+  </table></div></div>
+  <div class="tip"><strong>Why not just <code class="inline">age IN (SELECT MIN(age) ...)</code>?</strong>Then a 22-year-old in MERN would also match, because 22 is the minimum age of Data Analytics. Comparing the <b>pair</b> makes sure the age belongs to the same course.</div>
+
+  <h3>Example 2: derived table: students who paid more than ₹20,000 in total</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>-- Outer query reads from the temporary table "t"
+SELECT student_id, total_paid
+FROM (
+    -- inner query: one row per student with total of all instalments
+    SELECT student_id, SUM(amount) AS total_paid
+    FROM payments
+    GROUP BY student_id
+) AS t                       -- alias: name for the temporary table
+WHERE total_paid &gt; 20000;    -- now we can filter on the new column</code></pre></div>
+  <div class="result"><div class="result-title">Result</div><div class="table-scroll"><table>
+    <tr><th>student_id</th><th>total_paid</th></tr>
+    <tr><td class="n">101</td><td class="n">23000</td></tr><tr><td class="n">107</td><td class="n">23000</td></tr><tr><td class="n">109</td><td class="n">25000</td></tr><tr><td class="n">111</td><td class="n">23000</td></tr>
+  </table></div></div>
+  <div class="tip"><strong>Same result with HAVING?</strong>Yes, <code class="inline">GROUP BY student_id HAVING SUM(amount) &gt; 20000</code> also works. A derived table becomes useful when you want to join or calculate further on that summary, as in the next example.</div>
+
+  <h3>Example 3: derived table + JOIN: course-wise fee collection</h3>
+  <div class="code"><span class="label">example</span><button class="copy" type="button">Copy</button><pre><code>SELECT c.course_name,
+       t.paying_students,
+       t.collected
+FROM courses c
+-- join the courses table with a summary table made by the subquery
+JOIN (
+    SELECT s.course_id,
+           COUNT(DISTINCT s.student_id) AS paying_students, -- DISTINCT: a student with 2 instalments counts once
+           SUM(p.amount)                AS collected        -- total money for that course
+    FROM students s
+    JOIN payments p ON p.student_id = s.student_id
+    GROUP BY s.course_id
+) AS t ON t.course_id = c.course_id   -- connect summary to course names
+ORDER BY t.collected DESC;</code></pre></div>
+  <div class="result"><div class="result-title">Result</div><div class="table-scroll"><table>
+    <tr><th>course_name</th><th>paying_students</th><th>collected</th></tr>
+    <tr><td>MERN Stack</td><td class="n">4</td><td class="n">77000</td></tr><tr><td>Data Analytics</td><td class="n">3</td><td class="n">42000</td></tr><tr><td>Java Full Stack</td><td class="n">2</td><td class="n">40000</td></tr><tr><td>Python Basics</td><td class="n">2</td><td class="n">17000</td></tr>
+  </table></div></div>
+
+  <h3>Tasks: try these yourself</h3>
+
+  <div class="card task"><div class="task-head"><span class="task-no">C1</span><span class="level">Basic</span></div>
+    <p>Find students who are in the <b>same city AND same course as Aarav Sharma</b> (don't include Aarav).</p>
+    <p class="hint">Hint: compare <code class="inline">(city, course_id)</code> with one row of two columns.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name, city, course_id
+FROM students
+-- inner query returns ONE row with TWO columns: ('Delhi', 1)
+WHERE (city, course_id) = (SELECT city, course_id FROM students WHERE name = 'Aarav Sharma')
+  AND name &lt;&gt; 'Aarav Sharma';</code></pre></div>
+      <p><b>Expected:</b> Ananya Saini (Delhi, course 1)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">C2</span><span class="level">Basic</span></div>
+    <p>Find the <b>oldest student in each city</b>. Show name, city and age.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT name, city, age
+FROM students
+-- list of (city, highest age in that city) pairs
+WHERE (city, age) IN (
+    SELECT city, MAX(age) FROM students GROUP BY city
+);</code></pre></div>
+      <p><b>Expected:</b> Karan Singh (Faridabad 23), Vikas Yadav (Rewari 28), Pooja Arora (Noida 22), Amit Malik (Delhi 30), Sahil Chauhan (Gurugram 27)</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">C3</span><span class="level">Intermediate</span></div>
+    <p>Show the <b>latest payment</b> of every student (payment_id, student_id, amount, pay_date).</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT payment_id, student_id, amount, pay_date
+FROM payments
+-- pair: (student, their latest date)
+WHERE (student_id, pay_date) IN (
+    SELECT student_id, MAX(pay_date)
+    FROM payments
+    GROUP BY student_id
+)
+ORDER BY student_id;</code></pre></div>
+      <p><b>Expected:</b> 11 rows, one per paying student. For 101 it is payment 2, for 105 payment 7, for 111 payment 14.</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">C4</span><span class="level">Intermediate</span></div>
+    <p>Find the payment mode(s) whose <b>average payment is higher than the overall average payment</b>.</p>
+    <p class="hint">Hint: derived table (average per mode) + scalar subquery (overall average).</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT mode, avg_amount
+FROM (
+    -- derived table: average per mode
+    SELECT mode, ROUND(AVG(amount)) AS avg_amount
+    FROM payments
+    GROUP BY mode
+) AS t
+-- scalar subquery: overall average (about 12571)
+WHERE avg_amount &gt; (SELECT AVG(amount) FROM payments);</code></pre></div>
+      <p><b>Expected:</b> Card, 19333</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">C5</span><span class="level">Intermediate</span></div>
+    <p>Show the <b>pending fee</b> of every student who has paid something but not the full fee. Show name, fee, total_paid and pending, with the biggest pending amount first.</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT s.name,
+       c.fee,
+       t.total_paid,
+       c.fee - t.total_paid AS pending          -- how much is still due
+FROM students s
+JOIN courses c ON c.course_id = s.course_id     -- to get the course fee
+JOIN (
+    -- derived table: total paid by each student
+    SELECT student_id, SUM(amount) AS total_paid
+    FROM payments
+    GROUP BY student_id
+) AS t ON t.student_id = s.student_id
+WHERE c.fee - t.total_paid &gt; 0                  -- only those with dues
+ORDER BY pending DESC;</code></pre></div>
+      <p><b>Expected:</b> Rohit Kumar 15000, Pooja Arora 12000, Neha Jain 10000, Riya Kapoor 7000</p>
+    </details>
+  </div>
+
+  <div class="card task"><div class="task-head"><span class="task-no">C6</span><span class="level">Intermediate</span></div>
+    <p>Find the city with the <b>highest number of students</b> (if there is a tie, show all tied cities).</p>
+    <details><summary>Show answer</summary>
+      <div class="code"><button class="copy" type="button">Copy</button><pre><code>SELECT city, total_students
+FROM (
+    -- derived table: student count per city
+    SELECT city, COUNT(*) AS total_students
+    FROM students
+    GROUP BY city
+) AS t
+WHERE total_students = (
+    -- scalar subquery: the highest count among all cities
+    SELECT MAX(cnt)
+    FROM (SELECT COUNT(*) AS cnt FROM students GROUP BY city) AS x
+);</code></pre></div>
+      <p><b>Expected:</b> Delhi, 4</p>
+    </details>
+  </div>
+</section>
+
+<!-- ============================ CHEAT SHEET ============================ -->
+<section id="cheatsheet">
+  <h2>Quick cheat sheet</h2>
+  <div class="table-scroll"><table>
+    <tr><th>Type</th><th>Returns</th><th>Use with</th><th>Pattern</th></tr>
+    <tr><td>Scalar</td><td>1 row × 1 col</td><td><code class="inline">= &lt;&gt; &gt; &lt;</code>, in SELECT</td><td><code class="inline">WHERE fee &gt; (SELECT AVG(fee) ...)</code></td></tr>
+    <tr><td>Multi-row</td><td>many rows × 1 col</td><td><code class="inline">IN, NOT IN, ANY, ALL</code></td><td><code class="inline">WHERE id IN (SELECT id ...)</code></td></tr>
+    <tr><td>Multi-column</td><td>many rows × many cols</td><td><code class="inline">(a,b) IN</code>, FROM</td><td><code class="inline">WHERE (a,b) IN (SELECT x,y ...)</code></td></tr>
+    <tr><td>Derived table</td><td>a whole table</td><td>FROM / JOIN + alias</td><td><code class="inline">FROM (SELECT ...) AS t</code></td></tr>
+  </table></div>
+  <div class="tip"><strong>Common errors</strong>
+    <ul class="clean">
+      <li><em>more than one row returned by a subquery used as an expression</em>: you used <code class="inline">=</code> with a list. Use <code class="inline">IN</code>.</li>
+      <li><em>subquery has too many columns</em>: <code class="inline">IN</code> got 2 columns but you compared 1. Use <code class="inline">(a, b) IN</code> or remove a column.</li>
+      <li><em>NOT IN returns nothing</em>: there is a NULL in the inner list. Filter it with <code class="inline">IS NOT NULL</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>WebiGeeks · SQL Evening Session · Subqueries Class 1 · Tested on PostgreSQL 18</footer>
+</div>
+
+<script>
+  // ---- Simple SQL syntax colouring (keywords, functions, strings, numbers, comments)
+  (function () {
+    var KW = 'SELECT|FROM|WHERE|AND|OR|NOT|IN|ANY|ALL|AS|ON|JOIN|GROUP|BY|ORDER|DESC|ASC|HAVING|DISTINCT|CREATE|TABLE|INSERT|INTO|VALUES|DROP|IF|EXISTS|PRIMARY|KEY|REFERENCES|INT|VARCHAR|DATE|LIMIT|IS|NULL';
+    var FN = 'AVG|MAX|MIN|SUM|COUNT|ROUND';
+    var re = new RegExp('(--[^\\n]*)|(\'[^\']*\')|\\b(' + FN + ')(?=\\s*\\()|\\b(' + KW + ')\\b|\\b(\\d+(?:\\.\\d+)?)\\b', 'gi');
+    function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    document.querySelectorAll('.code pre code').forEach(function (el) {
+      var src = el.textContent, out = '', last = 0, m;
+      re.lastIndex = 0;
+      while ((m = re.exec(src))) {
+        out += esc(src.slice(last, m.index));
+        var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'fn' : m[4] ? 'kw' : 'num';
+        out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+        last = re.lastIndex;
+      }
+      el.innerHTML = out + esc(src.slice(last));
+    });
+  })();
+
+  // ---- Copy buttons: copy the plain SQL text of the block
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.parentElement.querySelector('code').textContent;
+      function ok() { btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500); }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else { fallback(); }
+      function fallback() {
+        var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); ok(); } catch (e) { btn.textContent = 'Press Ctrl+C'; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  // ---- Light / dark toggle (remembered per browser)
+  (function () {
+    var root = document.documentElement, btn = document.getElementById('themeBtn');
+    try { var saved = localStorage.getItem('sq-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    btn.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('sq-theme', next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

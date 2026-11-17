@@ -10,6 +10,8 @@ PostgreSQL practice scripts from the evening SQL classes. Run them in pgAdmin 4 
 | `data-cleaning-s1.sql` | Data cleaning, part 1: load and profile dirty data |
 | `data-cleaning-s2.sql` | Data cleaning, part 2: staging table and whitespace trimming |
 | `data-cleaning-s3.sql` | Data cleaning, part 3: whitespace cleanup on the staging table |
+| `subqueries/class-1.sql` | Subqueries, class 1: scalar, FROM and IN subqueries to find duplicate enrollments |
+| `subqueries/subqueries-practice.html` | Practice sheet (open in a browser): dataset, examples and tasks with hidden answers |
 
 ## Session 1: SQL basics (`session_1_script.sql`)
 Builds a shop database (`customers`, `products`, `orders`) and covers:
